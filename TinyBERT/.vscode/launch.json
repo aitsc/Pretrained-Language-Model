@@ -1,0 +1,135 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        // 1. General Distillation
+        {
+            "name": "GD:生成固定格式语料", // generate the corpus of json format
+            "type": "python",
+            "request": "launch",
+            "program": "pregenerate_training_data.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--train_corpus=",
+                "--bert_model=",
+                "--reduce_memory",
+                "--do_lower_case",
+                "--epochs_to_generate=3",
+                "--output_dir=",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        },
+        {
+            "name": "GD:内层蒸馏", // run the transformer distillation
+            "type": "python",
+            "request": "launch",
+            "program": "general_distill.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--pregenerated_data=",
+                "--teacher_model=",
+                "--student_model=",
+                "--reduce_memory",
+                "--do_lower_case",
+                "--train_batch_size=256",
+                "--output_dir=",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        },
+        // 2. Data Augmentation
+        // CUDA_VISIBLE_DEVICES=6 python -u data_augmentation.py --pretrained_bert_model=data/model/bert-base-uncased --glove_embs=data/model/glove.42B.300d.txt --glue_dir=data/english_data/GLUE --task_name=RTE
+        {
+            "name": "数据增强",
+            "type": "python",
+            "request": "launch",
+            "program": "data_augmentation.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--pretrained_bert_model=data/model/bert-base-uncased", // https://huggingface.co/bert-base-uncased/tree/main
+                "--glove_embs=data/model/glove.42B.300d.txt", // https://nlp.stanford.edu/projects/glove/
+                "--glue_dir=data/english_data/GLUE",
+                "--task_name=CoLA", // CoLA [SST-2] MRPC STS-B QQP MNLI QNLI RTE WNLI
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        },
+        // 3. Task-specific Distillation
+        {
+            "name": "TD:内层蒸馏", // intermediate layer distillation
+            "type": "python",
+            "request": "launch",
+            "program": "task_distill.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--teacher_model=data/model/bert-base-uncased",
+                "--student_model=data/TinyBERT_General_6L_768D",
+                "--data_dir=data/english_data/GLUE",
+                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--output_dir=data/output_dir/td_inter",
+                "--max_seq_length=128",
+                "--train_batch_size=32",
+                "--num_train_epochs=10",
+                "--aug_train",
+                "--do_lower_case",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        },
+        {
+            "name": "TD:预测层蒸馏", // prediction layer distillation
+            "type": "python",
+            "request": "launch",
+            "program": "task_distill.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--pred_distill",
+                "--teacher_model=data/model/bert-base-uncased",
+                "--student_model=data/TinyBERT_General_6L_768D",
+                "--data_dir=data/english_data/GLUE",
+                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--output_dir=data/output_dir/td_pred",
+                "--aug_train",
+                "--do_lower_case",
+                "--learning_rate=3e-5",
+                "--num_train_epochs=3",
+                "--eval_step=100",
+                "--max_seq_length=128",
+                "--train_batch_size=32",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        },
+        // 4. Evaluation
+        {
+            "name": "评估",
+            "type": "python",
+            "request": "launch",
+            "program": "task_distill.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--do_eval",
+                "--student_model=data/TinyBERT_General_6L_768D",
+                "--data_dir=data/english_data/GLUE",
+                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--output_dir=data/output_dir",
+                "--do_lower_case",
+                "--eval_batch_size=32",
+                "--max_seq_length=128",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "justMyCode": false,
+        }
+    ]
+}

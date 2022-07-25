@@ -41,6 +41,9 @@ from transformer.modeling import TinyBertForSequenceClassification
 from transformer.tokenization import BertTokenizer
 from transformer.optimization import BertAdam
 from transformer.file_utils import WEIGHTS_NAME, CONFIG_NAME
+from torchviz import make_dot
+import traceback
+from datetime import datetime
 
 csv.field_size_limit(sys.maxsize)
 
@@ -742,6 +745,11 @@ def main():
                         default=1.)
 
     args = parser.parse_args()
+    # 自动构建 data_dir, 这个文件里 task_name data_dir 都是一起出现的 
+    if args.task_name and args.data_dir:
+        args.data_dir = os.path.join(args.data_dir, args.task_name.split('-mm')[0])
+        args.task_name = args.task_name.lower()
+    args.output_dir = os.path.join(args.output_dir, datetime.now().strftime('%y%m%d_%H%M%S'))
     logger.info('The args: {}'.format(args))
 
     processors = {
@@ -760,6 +768,7 @@ def main():
     output_modes = {
         "cola": "classification",
         "mnli": "classification",
+        "mnli-mm": "classification",
         "mrpc": "classification",
         "sst-2": "classification",
         "sts-b": "regression",
@@ -964,6 +973,7 @@ def main():
                     loss = rep_loss + att_loss
                     tr_att_loss += att_loss.item()
                     tr_rep_loss += rep_loss.item()
+                    loss_layer_name = 'inter'
                 else:
                     if output_mode == "classification":
                         cls_loss = soft_cross_entropy(student_logits / args.temperature,
@@ -974,11 +984,28 @@ def main():
 
                     loss = cls_loss
                     tr_cls_loss += cls_loss.item()
+                    loss_layer_name = 'pred'
 
                 if n_gpu > 1:
                     loss = loss.mean()  # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
+
+                # 输出模型图. 要在 backward 之前, 此外 model.eval() 和 torch.no_grad() 会导致 var._is_view() 或 var.grad_fn 为 False 无法输出模型图
+                try:
+                    model_type = str(type(student_model)).split("'")[1]
+                    model_img_path = f'data/model_img/TD_{loss_layer_name}-{task_name}-loss-{model_type}'
+                    if not os.path.exists(model_img_path + '.pdf'):
+                        named_parameters = {}
+                        for n, m in [('s', student_model), ('t', teacher_model)]:
+                            for k, v in dict(m.named_parameters()).items():
+                                named_parameters[f'{n}_{k}'] = v
+                        g = make_dot(loss, params=named_parameters, show_attrs=True, show_saved=True)
+                        g.render(filename=model_img_path, cleanup=True, format='pdf')
+                        print(f'输出模型图: {model_img_path}.pdf')
+                except:
+                    traceback.print_exc()
+                    print('make_dot 模型图绘制失败 (常见原因是linux没安装相关graphviz包)')
 
                 loss.backward()
 

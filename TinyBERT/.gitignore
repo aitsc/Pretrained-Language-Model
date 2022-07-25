@@ -1,0 +1,6 @@
+data/
+.vscode/*
+!.vscode/launch.json
+__pycache__
+*.log
+*.pdf
