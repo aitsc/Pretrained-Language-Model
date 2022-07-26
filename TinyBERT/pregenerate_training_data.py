@@ -204,6 +204,7 @@ def create_masked_lm_predictions(tokens, masked_lm_prob, max_predictions_per_seq
 def create_instances_from_document(
         doc_database, doc_idx, max_seq_length, short_seq_prob,
         masked_lm_prob, max_predictions_per_seq, whole_word_mask, vocab_list, bi_text=True):
+    # 此代码主要是Google BERT回购协议中等效函数的复制品。然而，我们做了一些更改和改进。采样得到了改进，不再需要此函数中的循环。此外，文档根据包含的句子数量按比例进行采样，这意味着每个句子（而不是每个文档）都有平等的机会被采样作为NextSentence任务的虚假示例。
     """This code is mostly a duplicate of the equivalent function from Google BERT's repo.
     However, we make some changes and improvements. Sampling is improved and no longer requires a loop in this function.
     Also, documents are sampled proportionally to the number of sentences they contain, which means each sentence
@@ -233,7 +234,7 @@ def create_instances_from_document(
     current_chunk = []
     current_length = 0
     i = 0
-    while i < len(document):
+    while i < len(document):  # 文档token长度在target_seq_length之后被分割多少行, 这个文档就提取出多少个样本。如果文档为空会跳过，如果文档只有一个词/句子，最糟糕可能产生样本:[CLS,'',SEP,SEP]
         segment = document[i]
         current_chunk.append(segment)
         current_length += len(segment)
@@ -352,11 +353,11 @@ def main():
     parser.add_argument("--short_seq_prob", type=float, default=0.1,
                         help="Probability of making a short sentence as a training example")
     parser.add_argument("--masked_lm_prob", type=float, default=0.0,
-                        help="Probability of masking each token for the LM task")  # no [mask] symbol in corpus
+                        help="Probability of masking each token for the LM task")  # no [mask] symbol in corpus, mask的比例
     parser.add_argument("--max_predictions_per_seq", type=int, default=20,
-                        help="Maximum number of tokens to mask in each sequence")
+                        help="Maximum number of tokens to mask in each sequence")  # 最多mask的数量
     parser.add_argument('--data_url', type=str, default="")
-    parser.add_argument('--one_seq', action='store_true')
+    parser.add_argument('--one_seq', action='store_true')  # 为False代表第二个句子有50%的几率随机选择一个文档中的随机句子
 
     args = parser.parse_args()
 
@@ -390,6 +391,8 @@ def main():
                  "documents, blank lines can be inserted at any natural boundary, such as the ends of chapters, "
                  "sections or paragraphs.")
 
+        if not os.path.exists(args.output_dir):
+            os.mkdir(args.output_dir)
         args.output_dir.mkdir(exist_ok=True)
 
         if args.num_workers > 1:

@@ -13,6 +13,7 @@
             "justMyCode": false,
         },
         // 1. General Distillation
+        // python -u pregenerate_training_data.py --train_corpus=data/origin_data/books1.txt --bert_model=data/model/bert-base-uncased --do_lower_case --epochs_to_generate=3 --output_dir=data/output_dir/gd_data/books1 --num_workers=96
         {
             "name": "GD:生成固定格式语料", // generate the corpus of json format
             "type": "python",
@@ -20,12 +21,13 @@
             "program": "pregenerate_training_data.py",
             "console": "integratedTerminal",
             "args": [
-                "--train_corpus=data/origin_data/wiki.txt",
+                "--train_corpus=data/origin_data/wiki.100.txt",
                 "--bert_model=data/model/bert-base-uncased",
                 // "--reduce_memory",
                 "--do_lower_case",
                 "--epochs_to_generate=3",
-                "--output_dir=data/output_dir/gd_data",
+                "--output_dir=data/output_dir/gd_data/wiki.100", // 对应 --pregenerated_data
+                "--num_workers=1",
             ],
             "env": {"CUDA_VISIBLE_DEVICES":"6"},
             "justMyCode": false,
@@ -37,7 +39,7 @@
             "program": "general_distill.py",
             "console": "integratedTerminal",
             "args": [
-                "--pregenerated_data=data/output_dir/gd_data",
+                "--pregenerated_data=data/output_dir/gd_data/wiki.100",
                 "--teacher_model=data/model/bert-base-uncased",
                 "--student_model=data/model/TinyBERT6",
                 // "--reduce_memory",
