@@ -223,6 +223,7 @@ def create_instances_from_document(
     if random() < short_seq_prob:
         target_seq_length = randint(2, max_num_tokens)
 
+    # 我们不只是将文档中的所有令牌连接成一个长序列，并选择任意的分割点，因为这会使下一个句子预测任务变得太容易。相反，我们根据用户输入提供的实际“语句”将输入分为“A”和“B”部分。
     # We DON'T just concatenate all of the tokens from a document into a long
     # sequence and choose an arbitrary split point because this would make the
     # next sentence prediction task too easy. Instead, we split the input into
@@ -238,6 +239,7 @@ def create_instances_from_document(
         current_length += len(segment)
         if i == len(document) - 1 or current_length >= target_seq_length:
             if current_chunk:
+                # `a_end` 是 `current_chunk` 中有多少段进入 `A`（第一个）句子。
                 # `a_end` is how many segments from `current_chunk` go into the `A`
                 # (first) sentence.
                 a_end = 1
@@ -381,6 +383,7 @@ def main():
             if doc:
                 docs.add_document(doc)  # If the last doc didn't end on a newline, make sure it still gets added
         if len(docs) <= 1:
+            # 错误：在输入文件中没有发现文档中断！这些是允许脚本确保随机NextSentences不从同一文档中采样所必需的。请添加空白行，以指示输入文件中文档之间的间隙。如果您的数据集不包含多个文档，则可以在任何自然边界插入空白行，例如章节、章节或段落的末尾。
             exit("ERROR: No document breaks were found in the input file! These are necessary to allow the script to "
                  "ensure that random NextSentences are not sampled from the same document. Please add blank lines to "
                  "indicate breaks between documents in your input file. If your dataset does not contain multiple "
