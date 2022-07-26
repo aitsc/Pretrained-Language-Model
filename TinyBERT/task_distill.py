@@ -746,14 +746,17 @@ def main():
 
     args = parser.parse_args()
     # 输出路径
-    p = f'td_inter_{args.task_name}'
+    task_name = args.task_name.split('-mm')[0]  # MNLI-mm 只是dev/test不一样
+    p = f'td_inter_{task_name}'
     if args.pred_distill or args.do_eval:
         args.student_model = args.student_model.replace('/td_inter/', f'/{p}/')
         p = 'td_pred'  # do_eval 不需要 output_dir
+    if args.teacher_model:
+        args.teacher_model += task_name  # 适应 textattack/bert-base-uncased- 等
     args.output_dir = os.path.join(args.student_model, p, datetime.now().strftime('%y%m%d_%H%M%S'))
     # 自动构建 data_dir, 这个文件里 task_name data_dir 都是一起出现的 
     if args.task_name and args.data_dir:
-        args.data_dir = os.path.join(args.data_dir, args.task_name.split('-mm')[0])
+        args.data_dir = os.path.join(args.data_dir, task_name)
         args.task_name = args.task_name.lower()
     logger.info('The args: {}'.format(args))
 
@@ -787,12 +790,14 @@ def main():
     default_params = {
         "cola": {"num_train_epochs": 50, "max_seq_length": 64},
         "mnli": {"num_train_epochs": 5, "max_seq_length": 128},
+        "mnli-mm": {"num_train_epochs": 5, "max_seq_length": 128},
         "mrpc": {"num_train_epochs": 20, "max_seq_length": 128},
         "sst-2": {"num_train_epochs": 10, "max_seq_length": 64},
         "sts-b": {"num_train_epochs": 20, "max_seq_length": 128},
         "qqp": {"num_train_epochs": 5, "max_seq_length": 128},
         "qnli": {"num_train_epochs": 10, "max_seq_length": 128},
-        "rte": {"num_train_epochs": 20, "max_seq_length": 128}
+        "rte": {"num_train_epochs": 20, "max_seq_length": 128},
+        "wnli": {"num_train_epochs": 20, "max_seq_length": 128},
     }
 
     acc_tasks = ["mnli", "mrpc", "sst-2", "qqp", "qnli", "rte"]
@@ -817,19 +822,20 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
 
     # Prepare task settings
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
-        raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    if not args.do_eval:
+        if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
+            raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
+        if not os.path.exists(args.output_dir):
+            os.makedirs(args.output_dir)
 
     task_name = args.task_name.lower()
 
     if task_name in default_params:
-        args.max_seq_len = default_params[task_name]["max_seq_length"]
+        args.max_seq_length = default_params[task_name]["max_seq_length"]
 
     if not args.pred_distill and not args.do_eval:
         if task_name in default_params:
-            args.num_train_epoch = default_params[task_name]["num_train_epochs"]
+            args.num_train_epochs = default_params[task_name]["num_train_epochs"]
 
     if task_name not in processors:
         raise ValueError("Task not found: %s" % task_name)
