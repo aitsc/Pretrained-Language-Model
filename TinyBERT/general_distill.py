@@ -41,6 +41,9 @@ from transformer.file_utils import WEIGHTS_NAME, CONFIG_NAME
 from transformer.modeling import TinyBertForPreTraining, BertModel
 from transformer.tokenization import BertTokenizer
 from transformer.optimization import BertAdam
+from datetime import datetime
+from torchviz import make_dot
+import traceback
 
 csv.field_size_limit(sys.maxsize)
 
@@ -270,6 +273,29 @@ def main():
                         default="")
 
     args = parser.parse_args()
+    # 构建日期初始学生模型
+    if not os.path.exists(os.path.join(args.student_model, CONFIG_NAME)):  # 如果这个目录没有配置文件
+        args.student_model = os.path.join(args.student_model, f"{datetime.now().strftime('%y%m%d_%H%M%S')}")  # 加日期子目录
+        os.makedirs(args.student_model)  # 创建目录
+        with open(os.path.join(args.student_model, CONFIG_NAME), 'w', encoding='utf8') as w:  # 写入默认配置
+            json.dump({
+                "attention_probs_dropout_prob": 0.1,
+                "cell": {},
+                "model_type": "bert",
+                "hidden_act": "gelu",
+                "hidden_dropout_prob": 0.1,
+                "hidden_size": 768,
+                "initializer_range": 0.02,
+                "intermediate_size": 3072,
+                "max_position_embeddings": 512,
+                "num_attention_heads": 12,
+                "num_hidden_layers": 6,
+                "pre_trained": "",
+                "structure": [],
+                "type_vocab_size": 2,
+                "vocab_size": 30522
+            }, w, indent=2, ensure_ascii=False)
+        args.output_dir = args.student_model
     logger.info('args:{}'.format(args))
 
     samples_per_epoch = []
@@ -318,8 +344,8 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
 
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
-        raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
+    # if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
+    #     raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -441,6 +467,22 @@ def main():
                     loss = loss.mean()  # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
+
+                # 输出模型图
+                try:
+                    model_type = str(type(student_model)).split("'")[1]
+                    model_img_path = args.output_dir + f'/loss-{model_type}'
+                    if not os.path.exists(model_img_path + '.pdf'):
+                        named_parameters = {}
+                        for n, m in [('s', student_model), ('t', teacher_model)]:
+                            for k, v in dict(m.named_parameters()).items():
+                                named_parameters[f'{n}_{k}'] = v
+                        g = make_dot(loss, params=named_parameters, show_attrs=True, show_saved=True)
+                        g.render(filename=model_img_path, cleanup=True, format='pdf')
+                        print(f'输出模型图: {model_img_path}.pdf')
+                except:
+                    traceback.print_exc()
+                    print('make_dot 模型图绘制失败 (常见原因是linux没安装相关graphviz包)')
 
                 if args.fp16:
                     optimizer.backward(loss)

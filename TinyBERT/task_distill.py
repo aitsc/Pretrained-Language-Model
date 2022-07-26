@@ -745,11 +745,16 @@ def main():
                         default=1.)
 
     args = parser.parse_args()
+    # 输出路径
+    p = f'td_inter_{args.task_name}'
+    if args.pred_distill or args.do_eval:
+        args.student_model = args.student_model.replace('/td_inter/', f'/{p}/')
+        p = 'td_pred'  # do_eval 不需要 output_dir
+    args.output_dir = os.path.join(args.student_model, p, datetime.now().strftime('%y%m%d_%H%M%S'))
     # 自动构建 data_dir, 这个文件里 task_name data_dir 都是一起出现的 
     if args.task_name and args.data_dir:
         args.data_dir = os.path.join(args.data_dir, args.task_name.split('-mm')[0])
         args.task_name = args.task_name.lower()
-    args.output_dir = os.path.join(args.output_dir, datetime.now().strftime('%y%m%d_%H%M%S'))
     logger.info('The args: {}'.format(args))
 
     processors = {
@@ -994,7 +999,7 @@ def main():
                 # 输出模型图. 要在 backward 之前, 此外 model.eval() 和 torch.no_grad() 会导致 var._is_view() 或 var.grad_fn 为 False 无法输出模型图
                 try:
                     model_type = str(type(student_model)).split("'")[1]
-                    model_img_path = f'data/model_img/TD_{loss_layer_name}-{task_name}-loss-{model_type}'
+                    model_img_path = args.output_dir + f'/{loss_layer_name}-{task_name}-loss-{model_type}'
                     if not os.path.exists(model_img_path + '.pdf'):
                         named_parameters = {}
                         for n, m in [('s', student_model), ('t', teacher_model)]:
@@ -1056,7 +1061,7 @@ def main():
                             best_dev_acc = result['corr']
                             save_model = True
 
-                        if task_name in mcc_tasks and result['mcc'] > best_dev_acc:
+                        if task_name in mcc_tasks and result['mcc'] > best_dev_acc:  # cola 用 mcc 导致一直为0无法保存模型
                             best_dev_acc = result['mcc']
                             save_model = True
 
