@@ -107,6 +107,6 @@ def 合并语料():
 
 
 if __name__ == '__main__':
-    # books()
-    wiki(100)
+    # books(1000)
+    wiki(1000)
     # 合并语料()

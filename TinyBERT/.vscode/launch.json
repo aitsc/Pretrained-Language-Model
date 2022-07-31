@@ -13,7 +13,7 @@
             "justMyCode": false,
         },
         // 1. General Distillation
-        // python -u pregenerate_training_data.py --train_corpus=data/origin_data/books1.txt --bert_model=data/model/bert-base-uncased --do_lower_case --epochs_to_generate=3 --output_dir=data/output_dir/gd_data/books1 --num_workers=96
+        // python -u pregenerate_training_data.py --train_corpus=data/origin_data/books1.txt --bert_model=data/model/bert-base-uncased --do_lower_case --epochs_to_generate=3 --output_dir=data/gd_data/books1 --num_workers=96
         {
             "name": "GD:生成固定格式语料", // generate the corpus of json format
             "type": "python",
@@ -25,7 +25,7 @@
                 "--bert_model=data/model/bert-base-uncased",
                 "--do_lower_case", // True
                 "--epochs_to_generate=3", // 3
-                "--output_dir=data/output_dir/gd_data/wiki.100", // 对应 --pregenerated_data
+                "--output_dir=data/gd_data/wiki.100", // 对应 --pregenerated_data
                 "--num_workers=1",
             ],
             "env": {"CUDA_VISIBLE_DEVICES":"6"},
@@ -38,11 +38,11 @@
             "program": "general_distill.py",
             "console": "integratedTerminal",
             "args": [
-                "--pregenerated_data=data/output_dir/gd_data/wiki",
+                "--pregenerated_data=data/gd_data/wiki.100",
                 "--teacher_model=data/model/bert-base-uncased",
                 "--student_model=data/tinybert",
                 "--do_lower_case", // True
-                "--train_batch_size=256", // 256
+                "--train_batch_size=128", // 256
                 "--output_dir=", // 输出也模型放在 student_model 下, 之后执行TD .bin要改名去掉迭代
                 // "--continue_train", // 是否从检查点开始训练
             ],
@@ -61,7 +61,7 @@
                 "--pretrained_bert_model=data/model/bert-base-uncased", // https://huggingface.co/bert-base-uncased/tree/main
                 "--glove_embs=data/model/glove.42B.300d.txt", // https://nlp.stanford.edu/projects/glove/
                 "--glue_dir=data/english_data/GLUE",
-                "--task_name=CoLA", // CoLA [SST-2] MRPC STS-B QQP MNLI QNLI RTE WNLI
+                "--task_name=SST-2", // CoLA SST-2 MRPC STS-B QQP MNLI QNLI RTE [WNLI]
             ],
             "env": {"CUDA_VISIBLE_DEVICES":"6"},
             "justMyCode": false,
@@ -78,7 +78,7 @@
                 "--teacher_model=data/model/textattack/bert-base-uncased-",
                 "--student_model=data/tinybert/TinyBERT_General_6L_768D",
                 "--data_dir=data/english_data/GLUE",
-                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--task_name=MRPC", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 输出模型放在 student_model/td_inter_{task_name} 下
                 "--train_batch_size=32", // 32
                 "--aug_train",
@@ -96,9 +96,9 @@
             "args": [
                 "--pred_distill",
                 "--teacher_model=data/model/textattack/bert-base-uncased-",
-                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220726_135749",
+                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220728_065704",
                 "--data_dir=data/english_data/GLUE",
-                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--task_name=QNLI", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 输出模型放在 student_model/td_pred 下
                 "--aug_train",
                 "--do_lower_case", // True
@@ -119,14 +119,14 @@
             "console": "integratedTerminal",
             "args": [
                 "--do_eval",
-                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220726_135749/td_pred/220726_131832",
+                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220728_065704/td_pred/220729_014706",
                 // "--student_model=data/tinybert/TinyBERT_General_6L_768D",
                 // "--student_model=data/model/bert-base-uncased",
                 // "--student_model=data/model/bert-large-uncased",
                 // "--student_model=data/model/textattack/bert-base-uncased-MNLI",
 
                 "--data_dir=data/english_data/GLUE",
-                "--task_name=CoLA", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--task_name=QNLI", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 评估没有输出
                 "--do_lower_case", // True
                 "--eval_batch_size=32", // 32
