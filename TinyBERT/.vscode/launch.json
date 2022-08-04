@@ -46,7 +46,7 @@
                 "--output_dir=", // 输出也模型放在 student_model 下, 之后执行TD .bin要改名去掉迭代
                 // "--continue_train", // 是否从检查点开始训练
             ],
-            "env": {"CUDA_VISIBLE_DEVICES":"4,5"},
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
             "justMyCode": false,
         },
         // 2. Data Augmentation
@@ -76,7 +76,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--teacher_model=data/model/textattack/bert-base-uncased-",
-                "--student_model=data/tinybert/TinyBERT_General_6L_768D",
+                "--student_model=data/tinybert/tinybert6",
                 "--data_dir=data/english_data/GLUE",
                 "--task_name=MRPC", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 输出模型放在 student_model/td_inter_{task_name} 下
@@ -96,9 +96,9 @@
             "args": [
                 "--pred_distill",
                 "--teacher_model=data/model/textattack/bert-base-uncased-",
-                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220728_065704",
+                "--student_model=data/tinybert/tinybert6/td_inter/220801_121244",
                 "--data_dir=data/english_data/GLUE",
-                "--task_name=QNLI", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--task_name=MRPC", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 输出模型放在 student_model/td_pred 下
                 "--aug_train",
                 "--do_lower_case", // True
@@ -119,14 +119,14 @@
             "console": "integratedTerminal",
             "args": [
                 "--do_eval",
-                "--student_model=data/tinybert/TinyBERT_General_6L_768D/td_inter/220728_065704/td_pred/220729_014706",
+                "--student_model=data/tinybert/tinybert6/td_inter/220801_121244/td_pred/220802_015309",
                 // "--student_model=data/tinybert/TinyBERT_General_6L_768D",
                 // "--student_model=data/model/bert-base-uncased",
                 // "--student_model=data/model/bert-large-uncased",
                 // "--student_model=data/model/textattack/bert-base-uncased-MNLI",
 
                 "--data_dir=data/english_data/GLUE",
-                "--task_name=QNLI", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
+                "--task_name=MRPC", // CoLA SST-2 MRPC STS-B QQP MNLI MNLI-mm QNLI RTE WNLI
                 "--output_dir=", // 评估没有输出
                 "--do_lower_case", // True
                 "--eval_batch_size=32", // 32
